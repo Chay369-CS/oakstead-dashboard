@@ -244,16 +244,12 @@ with tab2:
                 
                 client = get_gemini_client()
                 if client:
-                    strategy_prompt = f"""
-                    A scrape of our UK mortgage/property competitors reveals they are heavily discussing these themes and keywords: {keywords}.
-                    And they have recently published these titles: {headings[:10]}.
+                    # Clean up data structures to plain strings before passing to f-string prompt
+                    keywords_str = ", ".join([f"{k} ({c}x)" for k, c in keywords])
+                    headings_str = "\n".join([f"- {h}" for h in headings[:10]])
                     
-                    Based on our premium, boutique brand positioning:
-                    {brand_context}
+                    strategy_prompt = f"Based on our premium brand positioning, analyze these trends and provide 3 content gaps. Keywords: {keywords_str}. Recent competitor headings:\n{headings_str}"
                     
-                    Identify 3 specific, highly-reassuring blog post topics Oakstead Finance should write next to capture our target audience's attention and fill a "content gap" that competitors are missing or handling too commercially.
-                    Provide a compelling Title, an explanation of the core Message, and why this works for a boutique firm.
-                    """
                     with st.spinner("Formulating intelligent content suggestions..."):
                         response = client.models.generate_content(
                             model='gemini-3.5-flash',
