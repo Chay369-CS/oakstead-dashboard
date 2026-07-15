@@ -12,7 +12,7 @@ import time
 
 # Set up page configuration with a premium look
 st.set_page_config(
-    page_title="Oakstead Finance - Intelligence & Engagement Hub",
+    page_title="Oakstead Finance - Agent Intelligence & Hub",
     page_icon="⚜️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -42,11 +42,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------- BRAND CONSTANTS -----------------
-DEFAULT_BRAND_CONTEXT = """Oakstead Finance is a premium, boutique mortgage advisory. 
-Our advice is clear, calm, intellectually reassuring, and highly professional.
-We completely avoid aggressive sales pitches, loud claims, and generic jargon (like "Call us now for a free quote!" or "Best rates guaranteed!").
-We focus on building deep, long-term trust with high-net-worth clients, premium buyers, and first-time buyers seeking sophisticated guidance.
-Every response must sound deeply human, empathetic, and knowledgeable—like a trusted private advisor."""
+DEFAULT_BRAND_CONTEXT = """Oakstead Finance is a premium, boutique mortgage advisory that partners with high-end estate agents. 
+Our goal is to help estate agents progress difficult transactions, rescue chain breaks, and secure complex funding for high-net-worth buyers.
+We position ourselves as an asset to the estate agent—highly professional, reliable, and expert at solving structural finance problems.
+We completely avoid aggressive retail sales pitches. We focus on clear B2B value, showing agents we can handle complex cases smoothly so their deals cross the finish line."""
 
 DEFAULT_COMPETITORS = [
     "https://www.spf.co.uk/blog/",
@@ -74,31 +73,32 @@ def call_gemini_with_retry(client, model, contents, retries=3, delay=2):
             response = client.models.generate_content(model=model, contents=contents)
             return response.text
         except Exception as e:
-            # If it's a server busy/unavailable error, pause and try again
             if "503" in str(e) or "unavailable" in str(e).lower() or "demand" in str(e).lower():
                 if attempt < retries - 1:
-                    time.sleep(delay * (attempt + 1)) # Wait slightly longer each time
+                    time.sleep(delay * (attempt + 1))
                     continue
             raise e
 
 def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""):
-    """Processes input and handles temporary server overloads smoothly."""
+    """Processes input and generates B2B agent-focused comments."""
     if not client:
         return "Gemini API key is missing. Please add it to your Streamlit secrets."
     
     prompt_instructions = f"""
-    You are acting as the voice of Oakstead Finance.
+    You are acting as the voice of Oakstead Finance, communicating directly with premium Estate Agents on social media.
     Here is our brand context:
     {context}
     
-    Analyze the provided input (Instagram text or image context).
-    Identify the core human emotion, concern, or situation.
-    Then, write THREE distinct reply options:
-    Option 1: The Reassuring Expert (calm, educational).
-    Option 2: The Cheerleader (warm, congratulatory).
-    Option 3: The Thought-Provoker (asks an intelligent question).
+    Analyze the provided input (Instagram text or image context from an estate agent's post showcasing a property, a market update, or a completed instruction).
+    Identify the core professional angle or problem (e.g., matching a unique buyer to a luxury listing, managing chain complications, or navigating premium local property values like SW13).
     
-    Provide your output in clean Markdown with clear headings for each option.
+    Then, write THREE distinct comment options that we could leave on the agent's post to demonstrate our value without sounding like a cheap pitch:
+    
+    Option 1: The Tactical Partner (calm, focused on structural finance solutions, rescuing complex completions, or providing alternative lending structures).
+    Option 2: The Industry Peer (supportive, congratulatory on their instruction/sale, focusing on the strength of the local prime market and premium network).
+    Option 3: The Strategic Asset (asks a sharp, professional market question that subtly highlights how creative mortgage structuring helps unlock stubborn transactions).
+    
+    Provide your output in clean Markdown with clear headings for each option. Do NOT use retail consumer CTAs.
     """
     
     try:
@@ -111,29 +111,28 @@ def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""
         combined_text = f"{prompt_instructions}\n\nUser Inputted Post Text:\n{user_text}" if user_text else prompt_instructions
         contents_payload.append(combined_text)
         
-        # Try calling the model with our smart retry structure
         return call_gemini_with_retry(client, 'gemini-3.5-flash', contents_payload)
         
     except Exception:
-        # Emergency Brand Backup if Google is completely down worldwide
+        # Calibrated Agent-to-Agent Backup responses if the API drops
         return """
-### ⚜️ Oakstead Advisor Backup Response (Google Server Busy)
+### ⚜️ Oakstead B2B Agent Backup Response (Google Server Busy)
 
-*The live AI service is currently handling peak global traffic. Below are calibrated brand responses aligned with your Oakstead positioning for premium property placements:*
+*The live AI service is currently handling peak global traffic. Below are professional, agent-focused responses calibrated for high-end real estate partnerships:*
 
-#### Option 1: The Reassuring Expert
-"Navigating premium locations like SW13 requires looking past short-term market noise. Finding stability in your long-term property decisions comes down to custom financial structuring rather than chasing broad trends."
+#### Option 1: The Tactical Partner
+"An exceptional instruction. Unique architectural listings like this often require bespoke, non-traditional financial underwriting to match the right high-net-worth buyer. Having a tailored structure ready on the finance side makes a massive difference in keeping these premium transactions moving smoothly."
 
-#### Option 2: The Cheerleader
-"A magnificent milestone. Securing a home in such a historic and beautiful pocket of London is a truly special chapter. Wishing you absolute clarity and joy as you settle in."
+#### Option 2: The Industry Peer
+"Superb work on this instruction. SW13 remains incredibly resilient when properties of this caliber are presented with precision. It’s always refreshing to see prime listings handled with such exceptional market presentation."
 
-#### Option 3: The Thought-Provoker
-"An exceptional property selection. When assessing acquisitions of this caliber, are you prioritizing immediate rate agility, or looking to insulate your asset structure over the next decade?"
+#### Option 3: The Strategic Asset
+"Magnificent property. When navigating transactions at this level, we’re increasingly seeing that structured bridging or complex portfolio configuration is what prevents chain friction. Are you finding buyers on these premium instructions looking for speed, or more complex, multi-asset lending structures?"
 """
 
 def extract_blog_keywords(urls):
-    """Scrapes competitor blogs with a robust fallback system to prevent center security blockages."""
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+    """Scrapes competitor blogs with a robust fallback system."""
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     scraped_headings = []
     
     for url in urls:
@@ -152,14 +151,10 @@ def extract_blog_keywords(urls):
             
     if not scraped_headings:
         scraped_headings = [
-            "BoE Interest Rate Decisions and the Impact on Fixed Rate Mortgages",
-            "Navigating High-Net-Worth Mortgages in a Shifting London Property Market",
-            "Stamp Duty Overhauls: What Premium Buyers Need to Know This Quarter",
-            "How to Structure Complex Income Streams for Luxury Property Acquisitions",
-            "The Rise of Generational Wealth: Parents Helping First-Time Buyers in SW13",
-            "Bridging Finance vs Traditional Mortgages for Prime Property Auctions",
-            "Green Mortgages: Do Energy Efficiency Ratings Affect Luxury Property Values?",
-            "Evaluating Fixed vs Tracker Rates for Million-Pound Mortgages"
+            "How High-Net-Worth Individuals Are Structuring Prime Purchases This Season",
+            "Overcoming Chain Delays: Advanced Bridging Tactics for Luxury Real Estate",
+            "The Role of Bespoke Underwriting in Securing Complex Multi-Asset Loans",
+            "Why Conventional Lending Fails Premium Properties and Luxury Conversions"
         ]
             
     all_words = []
@@ -178,45 +173,45 @@ def extract_blog_keywords(urls):
 # ----------------- APP INTERFACE -----------------
 
 st.markdown("<div class='main-title'>Oakstead Finance</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>Boutique Intelligence & Social Engagement Platform</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Agent Intelligence & Social Engagement Hub</div>", unsafe_allow_html=True)
 
 # Sidebar setup for Settings / Brand Hub
 st.sidebar.image("https://img.icons8.com/ios-filled/100/0E1E38/luxury.png", width=60)
-st.sidebar.markdown("### Oakstead Brand Hub")
+st.sidebar.markdown("### Oakstead Agent Hub")
 brand_context = st.sidebar.text_area(
-    "Active Brand Positioning",
+    "Active Agent Strategy Context",
     value=DEFAULT_BRAND_CONTEXT,
     height=250,
-    help="The Instagram Humanizer reads this directly to calibrate its voice."
+    help="The model reads this to ensure all commentary targets estate agents, focusing on deal execution and partnership."
 )
 
-tab1, tab2 = st.tabs(["💬 Instagram Humanizer", "📊 Competitor Intelligence"])
+tab1, tab2 = st.tabs(["💬 Instagram Agent Connect", "📊 Market Intelligence"])
 
-# --- TAB 1: INSTAGRAM HUMANIZER ---
+# --- TAB 1: INSTAGRAM AGENT CONNECT ---
 with tab1:
-    st.subheader("Generate Empathetic, Trust-Building Comments")
-    st.write("Upload a screenshot of an Instagram post (or comments), or paste the text. We will generate 3 highly authentic, non-salesy replies aligned with your brand.")
+    st.subheader("Generate B2B Agent Engagement Comments")
+    st.write("Upload an estate agent's luxury property post screenshot or paste their text. We will generate 3 highly authentic, peer-level comments focused on deal delivery and structural finance.")
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        uploaded_file = st.file_uploader("Upload Instagram Screenshot", type=["png", "jpg", "jpeg"])
+        uploaded_file = st.file_uploader("Upload Agent Post Screenshot", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Post", width='stretch')
+            st.image(image, caption="Agent Post", width='stretch')
             
-        pasted_text = st.text_area("Or, paste the post text / comments directly here:", height=120)
+        pasted_text = st.text_area("Or, paste the agent's description directly here:", height=120)
         
-        generate_btn = st.button("Generate Responses")
+        generate_btn = st.button("Generate Professional Responses")
         
     with col2:
-        st.markdown("### Recommended Replies")
+        st.markdown("### Calibrated Agent Commentaries")
         if generate_btn:
             client = get_gemini_client()
             if not client:
-                st.warning("⚠️ Google Gemini API Key is missing. Please add it to your Streamlit advanced secrets as: GEMINI_API_KEY = 'your-key'")
+                st.warning("⚠️ Google Gemini API Key is missing.")
             else:
-                with st.spinner("Analyzing human intent and crafting replies..."):
+                with st.spinner("Analyzing listing strategy and drafting B2B replies..."):
                     img_bytes = None
                     if uploaded_file is not None:
                         uploaded_file.seek(0)
@@ -225,43 +220,41 @@ with tab1:
                     replies = analyze_and_generate_replies(client, brand_context, img_bytes, pasted_text)
                     st.markdown(replies)
 
-# --- TAB 2: COMPETITOR INTELLIGENCE ---
+# --- TAB 2: MARKET INTELLIGENCE ---
 with tab2:
-    st.subheader("Competitor Content Analysis & Content Gap Strategy")
-    st.write("Below is your tracked list of premium UK mortgage/property blogs. We will scrape their live pages, identify dominant trends, and pinpoint content gaps for Oakstead Finance.")
+    st.subheader("Industry Insights & Joint Agent Content Value")
+    st.write("Analyze competitive channels to see what themes premium markets are discussing, allowing you to pitch smarter content angles to your partner agents.")
     
     competitor_input = st.text_area(
-        "Edit Competitor Blog URLs (one per line):",
+        "Edit Industry Sources (one per line):",
         value="\n".join(DEFAULT_COMPETITORS),
         height=150
     )
     
     urls = competitor_input.split("\n")
     
-    if st.button("Run Competitor Scraping & Analysis"):
-        with st.spinner("Scraping live blogs and analyzing keyword patterns..."):
+    if st.button("Analyze Industry Themes"):
+        with st.spinner("Scraping high-value lending updates..."):
             headings, keywords = extract_blog_keywords(urls)
             
             if not headings:
-                st.error("Could not retrieve headings. Double check your internet connection or the URLs provided.")
+                st.error("Could not retrieve headings.")
             else:
                 col_chart, col_list = st.columns([1, 1])
                 
                 with col_chart:
-                    st.markdown("#### Dominant Competitor Keywords")
-                    df = pd.DataFrame(keywords, columns=['Keyword', 'Frequency'])
+                    st.markdown("#### Dominant Finance Themes")
+                    df = pd.DataFrame(keywords, columns=['Theme', 'Frequency'])
                     if not df.empty:
-                        st.bar_chart(df.set_index('Keyword'))
-                    else:
-                        st.info("No common keywords extracted from titles.")
+                        st.bar_chart(df.set_index('Theme'))
                         
                 with col_list:
-                    st.markdown("#### Recently Tracked Headings")
+                    st.markdown("#### Key Tracking Headings")
                     for head in headings[:8]:
                         st.markdown(f"- *{head}*")
                 
                 st.markdown("---")
-                st.markdown("### 💡 Recommended Content Gaps for Oakstead Finance")
+                st.markdown("### 💡 Recommended Content Initiatives to Pitch to Agents")
                 
                 client = get_gemini_client()
                 if client:
@@ -270,34 +263,23 @@ with tab2:
                         headings_str = "\n".join([f"- {str(h)}" for h in headings[:10]])
                         
                         strategy_prompt = (
-                            f"You are a luxury market analyst. Based on our premium brand positioning context:\n{brand_context}\n\n"
-                            f"Analyze these market trends and provide exactly 3 specific content gaps.\n"
-                            f"Keywords found: {keywords_str}\n"
-                            f"Recent industry titles:\n{headings_str}"
+                            f"You are a B2B luxury real estate financing consultant. Based on our partner context:\n{brand_context}\n\n"
+                            f"Propose exactly 3 highly strategic co-marketing or educational insights Oakstead should share with estate agents to show we understand how to unlock their high-value deals.\n"
+                            f"Themes: {keywords_str}\n"
+                            f"Titles found:\n{headings_str}"
                         )
                         
-                        # Use our robust retry method for the competitor strategy too
                         strategy_response = call_gemini_with_retry(client, 'gemini-3.5-flash', strategy_prompt)
                         st.markdown(strategy_response)
                         
                     except Exception:
-                        # Backup Content Strategy if Google is completely slammed
                         st.markdown("""
-### 💡 Recommended Content Gaps (Backup Mode)
+### 💡 Recommended Joint Marketing Initiatives (Backup Mode)
 
-*The live AI service is currently handling peak global traffic. Here are 3 structural content gaps built for premium mortgage firms:*
-
-1. **Title:** *The Architecture of Affluence: Navigating Complex Income Structures for Prime Property*
-   * **Core Message:** How high-net-worth buyers can structure multi-layered wealth streams seamlessly during property acquisition.
-   * **Boutique Advantage:** Avoids standard retail calculations; appeals directly to private clients.
-
-2. **Title:** *Beyond the Base Rate: Strategic Debt Allocation in a Transitioning Market*
-   * **Core Message:** A high-level explanation of why asset insulation is more critical than minor interest rate fluctuations.
-   * **Boutique Advantage:** Deeply intellectual, calm, reassuring positioning.
-
-3. **Title:** *The SW13 Blueprint: Balancing Generational Support and Estate Structure*
-   * **Core Message:** Guide for high-net-worth families assisting children with first-time purchases without causing tax friction.
-   * **Boutique Advantage:** Highly local, premium, trust-oriented focus.
+1. **Insight Feature:** *Unlocking Stubborn Chain Breaks on Luxury Freeholds*
+   * **Value to Agent:** Educates agent teams on how specialized short-term bridging preserves their commission when a buyer's structural asset sale stalls.
+2. **Co-Authored Guide:** *The Underwriting Matrix for Multi-Layered Income Streams*
+   * **Value to Agent:** Shows agents how to vet cash-rich but structure-complex foreign or corporate buyers efficiently before taking properties off the market.
 """)
                 else:
-                    st.info("To unlock automated Content Gap suggestions, please ensure your Gemini API Key is configured in secrets.")
+                    st.info("Ensure your Gemini API Key is configured in secrets.")
