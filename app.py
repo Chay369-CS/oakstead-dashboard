@@ -103,12 +103,11 @@ def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""
             
         contents.append(prompt)
         
-        # Use gemini-2.5-flash as requested
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=contents
-        )
-        return response.text
+        # Use gemini-3.5-flash as requested
+response = client.models.generate_content(
+    model='gemini-3.5-flash',
+    contents=contents
+)        return response.text
     except Exception as e:
         return f"Error communicating with Gemini: {str(e)}"
 
