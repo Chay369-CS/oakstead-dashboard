@@ -59,7 +59,6 @@ DEFAULT_COMPETITORS = [
 def get_gemini_client():
     """Initializes the Gemini client using Streamlit secrets."""
     try:
-        # Retrieve the key from Streamlit's secrets manager
         api_key = st.secrets["GEMINI_API_KEY"]
         if not api_key:
             return None
@@ -93,7 +92,6 @@ def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""
     try:
         contents = []
         if image_bytes:
-            # Pass image directly as part of contents
             contents.append(types.Part.from_bytes(
                 data=image_bytes,
                 mime_type="image/png"
@@ -103,7 +101,6 @@ def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""
             
         contents.append(prompt)
         
-        # Core Update: Use gemini-3.5-flash
         response = client.models.generate_content(
             model='gemini-3.5-flash',
             contents=contents
@@ -124,16 +121,13 @@ def extract_blog_keywords(urls):
             r = requests.get(url, headers=headers, timeout=5)
             if r.status_code == 200:
                 soup = BeautifulSoup(r.text, 'html.parser')
-                # Grab h1, h2, and h3 tags which represent blog titles/headers
                 for heading in soup.find_all(['h1', 'h2', 'h3']):
                     text = heading.get_text().strip()
-                    if len(text) > 10:  # Skip tiny interface words
+                    if len(text) > 10:
                         scraped_headings.append(text)
         except Exception:
-            # Silent fail for individual URLs so the app keeps running smoothly
             pass
             
-    # Simple NLP: break down headings into common topic terms
     all_words = []
     stopwords = {'the', 'and', 'to', 'of', 'in', 'for', 'on', 'a', 'with', 'is', 'your', 'how', 'what', 'you', 'are', 'about', 'why', 'new', 'an', 'at', 'us'}
     
@@ -174,9 +168,8 @@ with tab1:
     with col1:
         uploaded_file = st.file_uploader("Upload Instagram Screenshot", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
-            # Display uploaded screenshot preview safely
             image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Post", use_container_width=True)
+            st.image(image, caption="Uploaded Post", width='stretch')
             
         pasted_text = st.text_area("Or, paste the post text / comments directly here:", height=120)
         
@@ -203,7 +196,6 @@ with tab2:
     st.subheader("Competitor Content Analysis & Content Gap Strategy")
     st.write("Below is your tracked list of premium UK mortgage/property blogs. We will scrape their live pages, identify dominant trends, and pinpoint content gaps for Oakstead Finance.")
     
-    # Allow user to customize their competitor URLs in a list
     competitor_input = st.text_area(
         "Edit Competitor Blog URLs (one per line):",
         value="\n".join(DEFAULT_COMPETITORS),
@@ -231,11 +223,9 @@ with tab2:
                         
                 with col_list:
                     st.markdown("#### Recently Tracked Headings")
-                    # Show up to 8 real-time headings pulled
                     for head in headings[:8]:
                         st.markdown(f"- *{head}*")
                 
-                # --- AI Strategy Generation based on Scraping ---
                 st.markdown("---")
                 st.markdown("### 💡 Recommended Content Gaps for Oakstead Finance")
                 
@@ -252,7 +242,6 @@ with tab2:
                     Provide a compelling Title, an explanation of the core Message, and why this works for a boutique firm.
                     """
                     with st.spinner("Formulating intelligent content suggestions..."):
-                        # Core Update: Use gemini-3.5-flash here too!
                         response = client.models.generate_content(
                             model='gemini-3.5-flash',
                             contents=strategy_prompt
