@@ -68,7 +68,7 @@ def get_gemini_client():
         return None
 
 def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""):
-    """Uses Gemini 2.5 Flash to process either an image or pasted text and generate replies."""
+    """Uses Gemini 3.5 Flash to process either an image or pasted text and generate replies."""
     if not client:
         return "Gemini API key is missing. Please add it to your Streamlit secrets."
     
@@ -103,11 +103,12 @@ def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""
             
         contents.append(prompt)
         
-        # Use gemini-3.5-flash as requested
-response = client.models.generate_content(
-    model='gemini-3.5-flash',
-    contents=contents
-)        return response.text
+        # Core Update: Use gemini-3.5-flash
+        response = client.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=contents
+        )
+        return response.text
     except Exception as e:
         return f"Error communicating with Gemini: {str(e)}"
 
@@ -202,7 +203,7 @@ with tab2:
     st.subheader("Competitor Content Analysis & Content Gap Strategy")
     st.write("Below is your tracked list of premium UK mortgage/property blogs. We will scrape their live pages, identify dominant trends, and pinpoint content gaps for Oakstead Finance.")
     
-    # Allow user to customize their 15-20 competitor URLs in a list
+    # Allow user to customize their competitor URLs in a list
     competitor_input = st.text_area(
         "Edit Competitor Blog URLs (one per line):",
         value="\n".join(DEFAULT_COMPETITORS),
@@ -251,8 +252,9 @@ with tab2:
                     Provide a compelling Title, an explanation of the core Message, and why this works for a boutique firm.
                     """
                     with st.spinner("Formulating intelligent content suggestions..."):
+                        # Core Update: Use gemini-3.5-flash here too!
                         response = client.models.generate_content(
-                            model='gemini-2.5-flash',
+                            model='gemini-3.5-flash',
                             contents=strategy_prompt
                         )
                         st.markdown(response.text)
