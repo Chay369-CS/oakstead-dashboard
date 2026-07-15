@@ -57,7 +57,7 @@ DEFAULT_COMPETITORS = [
 # ----------------- CORE LOGIC -----------------
 
 def get_gemini_client():
-    """Initializes the Gemini client using Streamlit secrets."""
+    """Initializes the Gemini client using Streamlit secrets safely."""
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         if not api_key:
@@ -67,11 +67,11 @@ def get_gemini_client():
         return None
 
 def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""):
-    """Uses Gemini 3.5 Flash to process either an image or pasted text and generate replies."""
+    """Uses the modern google-genai structure to safely run content requests."""
     if not client:
         return "Gemini API key is missing. Please add it to your Streamlit secrets."
     
-    prompt = f"""
+    prompt_instructions = f"""
     You are acting as the voice of Oakstead Finance.
     Here is our brand context:
     {context}
@@ -90,27 +90,31 @@ def analyze_and_generate_replies(client, context, image_bytes=None, user_text=""
     """
     
     try:
-        contents = []
+        # Build contents array following strict Google Gen AI guidelines
+        contents_payload = []
+        
         if image_bytes:
-            contents.append(types.Part.from_bytes(
-                data=image_bytes,
-                mime_type="image/png"
-            ))
-        if user_text:
-            contents.append(user_text)
+            contents_payload.append(
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type="image/png"
+                )
+            )
             
-        contents.append(prompt)
+        # Combine instructions and raw text safely as strings
+        combined_text = f"{prompt_instructions}\n\nUser Inputted Post Text:\n{user_text}" if user_text else prompt_instructions
+        contents_payload.append(combined_text)
         
         response = client.models.generate_content(
             model='gemini-3.5-flash',
-            contents=contents
+            contents=contents_payload
         )
         return response.text
     except Exception as e:
-        return f"Error communicating with Gemini: {str(e)}"
+        return f"### ⚠️ System Request Blocked\nThe engine could not finalize this social processing layout. Technical details: {str(e)}"
 
 def extract_blog_keywords(urls):
-    """Scrapes competitor blogs to find common topics and keywords with a robust mock fallback."""
+    """Scrapes competitor blogs with a robust fallback system to prevent center security blockages."""
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     scraped_headings = []
     
@@ -123,12 +127,12 @@ def extract_blog_keywords(urls):
                 soup = BeautifulSoup(r.text, 'html.parser')
                 for heading in soup.find_all(['h1', 'h2', 'h3']):
                     text = heading.get_text().strip()
-                    if len(text) > 12:  # Skip navigation/interface filler words
+                    if len(text) > 12:
                         scraped_headings.append(text)
         except Exception:
             pass
             
-    # Fallback Mechanism: If live scraping is blocked by firewall, use high-value industry targets
+    # Premium Market Backup Strategy if live connection is dropped/firewalled
     if not scraped_headings:
         scraped_headings = [
             "BoE Interest Rate Decisions and the Impact on Fixed Rate Mortgages",
@@ -244,17 +248,24 @@ with tab2:
                 
                 client = get_gemini_client()
                 if client:
-                    # Clean up data structures to plain strings before passing to f-string prompt
-                    keywords_str = ", ".join([f"{k} ({c}x)" for k, c in keywords])
-                    headings_str = "\n".join([f"- {h}" for h in headings[:10]])
-                    
-                    strategy_prompt = f"Based on our premium brand positioning, analyze these trends and provide 3 content gaps. Keywords: {keywords_str}. Recent competitor headings:\n{headings_str}"
-                    
-                    with st.spinner("Formulating intelligent content suggestions..."):
+                    try:
+                        # Safely serialize data into plain strings to prevent nested f-string dict/tuple crashes
+                        keywords_str = ", ".join([f"{str(k)} ({str(c)}x)" for k, c in keywords])
+                        headings_str = "\n".join([f"- {str(h)}" for h in headings[:10]])
+                        
+                        strategy_prompt = (
+                            f"You are a luxury market analyst. Based on our premium brand positioning context:\n{brand_context}\n\n"
+                            f"Analyze these market trends and provide exactly 3 specific content gaps.\n"
+                            f"Keywords found: {keywords_str}\n"
+                            f"Recent industry titles:\n{headings_str}"
+                        )
+                        
                         response = client.models.generate_content(
                             model='gemini-3.5-flash',
                             contents=strategy_prompt
                         )
                         st.markdown(response.text)
+                    except Exception as e:
+                        st.error(f"Failed to compile content suggestions: {str(e)}")
                 else:
                     st.info("To unlock automated Content Gap suggestions, please ensure your Gemini API Key is configured in secrets.")
